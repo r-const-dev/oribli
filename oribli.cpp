@@ -6,6 +6,15 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <vector>
+
+bool StartsWith(const char* s, const char* prefix) {
+  while (*s == *prefix) {
+    ++s;
+    ++prefix;
+  }
+  return (*prefix == '\0');
+}
 
 void ShowUsage(const char* binary_name) {
   std::cout << "Usage: " << binary_name << " <command> <args>" << std::endl;
@@ -107,7 +116,83 @@ int CMake(int args_count, const char** args)  {
   return 0;
 }
 
-int main(int argc, const char** argv) {
+bool ParseStringFlag(int* pargc, char*** pargv, const char* flag, std::string* value) {
+  int& argc = *pargc;
+  char**& argv = *pargv;
+  std::vector<int> args_to_remove;
+  bool capture_value =  false;
+  bool has_value = false;
+  for (int i = 2; i < argc; ++i) {
+    if (capture_value) {
+      value->assign(argv[i]);
+      capture_value = false;
+      has_value = true;
+      args_to_remove.push_back(i);
+      continue;
+    }
+    if (StartsWith(argv[i], flag)) {
+      args_to_remove.push_back(i);
+      const char* pvalue = argv[i] + strlen(flag);
+      if (*pvalue == '=' || *pvalue == ':') {
+        ++pvalue;
+        value->assign(pvalue);
+        has_value = !value->empty();
+      } else {
+        capture_value = true;
+      }
+      continue;
+    }
+  }
+  if (!has_value) {
+    return false;
+  }
+  while (!args_to_remove.empty()) {
+    for (int i = args_to_remove.back(); i < argc - 1; ++i) {
+      argv[i] = argv[i+1];
+    }
+    --argc;
+    args_to_remove.pop_back();
+  }
+  return true;
+}
+
+int Embed(const std::string& hdr_path, const std::string& src_path, const std::string& map_name, int files_count, const char** files) {
+  std::ofstream hdr(hdr_path);
+  hdr << "#pragma once" << std::endl;
+  hdr << "#include <map>" << std::endl;
+  hdr << "#include <string>" << std::endl;
+  hdr << "extern std::map<std::string, const char*> " << map_name << ";" << std::endl;
+  hdr.close();
+
+  std::ofstream src(src_path);
+  src << "#include <map>" << std::endl;
+  src << "#include <string>" << std::endl;
+  src << "namespace {" << std::endl;
+  src << "  std::map<std::string, const char*> CreateMap() {" << std::endl;
+  src << "    std::map<std::string, const char*> m;" << std::endl;
+  for (int i = 0; i < files_count; ++i) {
+    std::ifstream in(files[i]);
+    src << std::endl;
+    src << std::endl;
+    src <<  "    m[" << std::filesystem::path(files[i]).filename() << "] = R\"file(" << std::endl;
+    src << in.rdbuf();
+    src << "test";
+    src << "    )file\";" << std::endl;
+    in.close();
+  }
+  src << std::endl;
+  src << std::endl;
+  src << "    return m;" << std::endl;
+  src << "  }" << std::endl;
+  src << "} // namespace" << std::endl;
+  src << std::endl;
+  src << "std::map<std::string, const char*> " << map_name << " = CreateMap();" << std::endl;
+  src.close();
+
+  return 0;
+}
+
+int main(int argc, char** argv) {
   if (argc < 2) {
     CommandError("Missing command");
     ShowUsage(argv[0]);
@@ -120,7 +205,7 @@ int main(int argc, const char** argv) {
       ShowUsage(argv[0]);
       return -1;
     }
-    return CMake(argc - 2, argv + 2);
+    return CMake(argc - 2, (const char**)(argv + 2));
   }
   if (command == "deps") {
     if (argc < 3) {
@@ -128,7 +213,22 @@ int main(int argc, const char** argv) {
       ShowUsage(argv[0]);
       return -1;
     }
-    return VcpkgDeps(argc - 2, argv + 2);
+    return VcpkgDeps(argc - 2, (const char**)(argv + 2));
+  }
+  if (command == "embed") {
+    std::string hdr;
+    if (!ParseStringFlag(&argc, &argv, "--hdr", &hdr)) {
+      CommandError("embed requires --hdr=<output-header-file-name>");
+    }
+    std::string src;
+    if (!ParseStringFlag(&argc, &argv, "--src", &src)) {
+      CommandError("embed requires --src=<output-source-file-name>");
+    }
+    std::string map_name;
+    if (!ParseStringFlag(&argc, &argv, "--map", &map_name)) {
+      CommandError("embed requires --map=<output-constant-map-name>");
+    }
+    return Embed(hdr, src, map_name, argc - 2, (const char**)(argv + 2));
   }
   return 0;
 }
