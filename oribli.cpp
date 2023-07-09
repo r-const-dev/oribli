@@ -98,6 +98,7 @@ int CMake(int args_count, const char** args)  {
   cmd << " " << "-DCMAKE_BUILD_TYPE=release";
   cmd << " " << "-DVCPKG_INSTALLED_DIR=" << std::filesystem::current_path() / kVcpkgInstalled;
   cmd << " " << "-DCMAKE_TOOLCHAIN_FILE=" << VcpkgPath() / kVcpkgToolChain;
+  cmd << " " << "-DORIBLI_CMAKE=/usr/lib/cmake/oribli/oribli.cmake";
   for (int i = 0; i < args_count; ++i) {
     cmd << " " << args[i];
   }

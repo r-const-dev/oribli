@@ -23,6 +23,6 @@ RUN /opt/vcpkg/bootstrap-vcpkg.sh
 RUN echo "set(VCPKG_BUILD_TYPE release)" >> /opt/vcpkg/triplets/x64-linux.cmake
 
 # oribli
-COPY *.cpp *.h Makefile /usr/local/src/oribli/
+COPY *.cpp *.h *.cmake Makefile /usr/local/src/oribli/
 WORKDIR /usr/local/src/oribli
 RUN make && make install
