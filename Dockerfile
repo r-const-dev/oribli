@@ -1,3 +1,6 @@
+# Build using `docker build -t razvanco13/oribli .`
+# Deploy usnig `docker push razvanco13/oribli`
+
 FROM alpine
 RUN apk update
 RUN apk add cmake
@@ -11,11 +14,6 @@ RUN apk add linux-headers
 RUN apk add perl
 RUN apk add openssl-libs-static
 
-# oribli
-RUN git clone --bare https://github.com/r-const-dev/oribli.git /usr/local/src/oribli
-WORKDIR /usr/local/src/oribli
-RUN make && make install
-
 # vcpkg
 RUN git clone https://github.com/Microsoft/vcpkg.git /opt/vcpkg
 # VCPKG_FORCE_SYSTEM_BINARIES=1 is required by vcpkg on alpine
@@ -23,3 +21,8 @@ ENV VCPKG_FORCE_SYSTEM_BINARIES=1
 RUN /opt/vcpkg/bootstrap-vcpkg.sh
 # vcpkg builds release and debug by default for all packages; disable the default and only build release version
 RUN echo "set(VCPKG_BUILD_TYPE release)" >> /opt/vcpkg/triplets/x64-linux.cmake
+
+# oribli
+COPY *.cpp *.h Makefile /usr/local/src/oribli/
+WORKDIR /usr/local/src/oribli
+RUN make && make install
