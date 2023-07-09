@@ -36,6 +36,38 @@ const char* kVcpkgBin = "vcpkg";
 const char* kVcpkgToolChain = "scripts/buildsystems/vcpkg.cmake";
 const char* kVcpkgInstalled = "vcpkg_installed";
 
+std::filesystem::path VcpkgPath() {
+  const char* homedir = getenv("HOME");
+  if (!homedir) {
+    return kVcpkgPath;
+  }
+  std::filesystem::path config = std::filesystem::path(homedir) / ".config/oribli";
+  if (!std::filesystem::exists(config)) {
+    return kVcpkgPath;
+  }
+  std::ifstream metadata(config);
+  std::string line;
+  while (std::getline(metadata, line)) {
+    if (*std::mismatch(line.begin(), line.end(), "VCPKG_PATH").second == '\0') {
+      int colon_pos = line.find(':');
+      if (colon_pos == std::string::npos) {
+        continue;
+      }
+      std::string value = line.substr(colon_pos+1);
+      int start = value.find_first_not_of(" \t");
+      if (start) {
+        value = value.substr(start);
+      }
+      int end = value.find_last_not_of(" \t");
+      if (end != value.size() - 1) {
+        value = value.substr(0, end);
+      }
+      return value;
+    }
+  }
+  return kVcpkgPath;
+}
+
 int VcpkgDeps(int deps_count, const char** deps) {
   std::ofstream vcpkg_json("vcpkg.json");
   vcpkg_json << "{" << std::endl;
@@ -53,20 +85,22 @@ int VcpkgDeps(int deps_count, const char** deps) {
   vcpkg_json.close();
   
   std::stringstream cmd;
-  cmd << std::filesystem::path() / kVcpkgPath / kVcpkgBin;
+  cmd << VcpkgPath() / kVcpkgBin;
   cmd << " " << "install";
   ExecCmd(cmd.str());
   return 0;
 }
 
-int CMake(const std::string& source)  {
+int CMake(int args_count, const char** args)  {
   // RUN cmake -DCMAKE_BUILD_TYPE=release -DVCPKG_INSTALLED_DIR=/build/oridupes/vcpkg_installed/  /oridupes/src/
   std::stringstream cmd;
   cmd << "cmake";
   cmd << " " << "-DCMAKE_BUILD_TYPE=release";
   cmd << " " << "-DVCPKG_INSTALLED_DIR=" << std::filesystem::current_path() / kVcpkgInstalled;
-  cmd << " " << "-DCMAKE_TOOLCHAIN_FILE=" << std::filesystem::path() / kVcpkgPath / kVcpkgToolChain;
-  cmd << " " << "-S " << source;
+  cmd << " " << "-DCMAKE_TOOLCHAIN_FILE=" << VcpkgPath() / kVcpkgToolChain;
+  for (int i = 0; i < args_count; ++i) {
+    cmd << " " << args[i];
+  }
   
   ExecCmd(cmd.str());
   return 0;
@@ -80,12 +114,12 @@ int main(int argc, const char** argv) {
   }
   std::string command = argv[1];
   if (command == "cmake") {
-    if (argc != 3) {
-      CommandError("cmake command requires source argument");
+    if (argc < 3) {
+      CommandError("cmake command requires at least the source argument");
       ShowUsage(argv[0]);
       return -1;
     }
-    return CMake(argv[2]);
+    return CMake(argc - 2, argv + 2);
   }
   if (command == "deps") {
     if (argc < 3) {
