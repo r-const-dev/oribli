@@ -176,7 +176,6 @@ int Embed(const std::string& hdr_path, const std::string& src_path, const std::s
     src << std::endl;
     src <<  "    m[" << std::filesystem::path(files[i]).filename() << "] = R\"file(" << std::endl;
     src << in.rdbuf();
-    src << "test";
     src << "    )file\";" << std::endl;
     in.close();
   }
