@@ -18,9 +18,39 @@ macro(oribli_standard)
   oribli_detect_static()
 endmacro()
 
+function(oribli_target_auto_static TARGET_NAME)
+  if (ORIBLI_STATIC) 
+    target_link_libraries(${TARGET_NAME} PRIVATE -static)
+  endif(ORIBLI_STATIC)
+endfunction()
+
 macro(oribli_string_option OPT_NAME OPT_DESC OPT_DEFAULT)
   set(OPT_NAME ${OPT_DEFAULT}... CACHE STRING ${OPT_DESC})
 endmacro()
+
+# In a folder containing an npm package, triggers `npm build` to build the package and embeds all output files into a c++ library.
+#   DIST_DIR - the output dir, relative to current source dir
+#   LIB - the C++ target library to produce, which implements the static map named `kWebuiFiles`.
+function(add_oribli_embed_npm_build)
+  cmake_parse_arguments(ORIBLI_EMBED "" "LIB" "DIST_DIR" ${ARGN})
+  set(ORIBLI_EMBED_DIST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${ORIBLI_EMBED_DIST_DIR})
+  set(ORIBLI_EMBED_GEN_SRC ${ORIBLI_EMBED_LIB}.cpp)
+  set(ORIBLI_EMBED_DIST_MD5 ${CMAKE_CURRENT_BINARY_DIR}/.md5sums)
+  add_custom_command(
+      OUTPUT ${ORIBLI_EMBED_DIST_MD5}
+      DEPENDS *
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      COMMAND npm run build
+      COMMAND md5sum dist/* > ${ORIBLI_EMBED_DIST_MD5}
+      COMMENT "npm run build")
+  add_custom_command(
+      OUTPUT ${ORIBLI_EMBED_GEN_SRC}
+      DEPENDS ${ORIBLI_EMBED_DIST_MD5}
+      COMMAND oribli embed --hdr=${ORIBLI_EMBED_GEN_SRC}.h --src=${ORIBLI_EMBED_GEN_SRC} --map=kWebuiFiles "${ORIBLI_EMBED_DIST_DIR}/*"
+      COMMENT "oribli embed --src=${ORIBLI_EMBED_GEN_SRC} --map=kWebuiFiles ${ORIBLI_EMBED_DIST_DIR}/*")
+  add_library(${ORIBLI_EMBED_LIB} STATIC ${CMAKE_CURRENT_BINARY_DIR}/${ORIBLI_EMBED_GEN_SRC})
+endfunction()
+  
 
 function(add_oribli_embed_library)
   cmake_parse_arguments(ORIBLI_EMBED "" "LIB;SRC;MAP" "DIR" ${ARGN})
