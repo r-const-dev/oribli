@@ -1,7 +1,21 @@
+# When libc is musl, static linking of C++ binaries is working.
+# https://build-your-own.org/blog/20221229_alpine/
+macro(oribli_detect_static)
+  execute_process(COMMAND ldd /bin/true OUTPUT_VARIABLE LDD_TRUE_RESULT)
+  if(LDD_TRUE_RESULT MATCHES "libc\.musl")
+    message("Detected musl libc. Default to static linking.")
+    set(BUILD_SHARED_LIBS OFF)
+    set(ORIBLI_STATIC ON)
+  else()
+    set(ORIBLI_STATIC OFF)
+  endif()
+endmacro()
+
 macro(oribli_standard)
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  set(BUILD_SHARED_LIBS OFF)
+  include_directories(${CMAKE_SOURCE_DIR})
+  oribli_detect_static()
 endmacro()
 
 macro(oribli_string_option OPT_NAME OPT_DESC OPT_DEFAULT)
