@@ -1,5 +1,5 @@
 # Build using `docker build -t razvanco13/oribli .`
-# Deploy usnig `docker push razvanco13/oribli`
+# Deploy using `docker push razvanco13/oribli`
 
 FROM alpine
 RUN apk update
@@ -26,3 +26,6 @@ RUN echo "set(VCPKG_BUILD_TYPE release)" >> /opt/vcpkg/triplets/x64-linux.cmake
 COPY *.cpp *.h *.cmake Makefile /usr/local/src/oribli/
 WORKDIR /usr/local/src/oribli
 RUN make && make install
+
+RUN apk update
+RUN apk add npm
