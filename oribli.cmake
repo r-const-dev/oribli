@@ -4,6 +4,10 @@ macro(oribli_standard)
   set(BUILD_SHARED_LIBS OFF)
 endmacro()
 
+macro(oribli_string_option OPT_NAME OPT_DESC OPT_DEFAULT)
+  set(OPT_NAME ${OPT_DEFAULT}... CACHE STRING ${OPT_DESC})
+endmacro()
+
 function(target_oribli_embed)
   cmake_parse_arguments(ORIBLI_EMBED "" "LIB;HDR;SRC;MAP" "DEPS" ${ARGN})
   add_custom_command(
