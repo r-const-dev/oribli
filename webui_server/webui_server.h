@@ -8,5 +8,7 @@ class Server;
 }  // namespace httplib
 
 namespace oribli {
-void ServeWebui(httplib::Server* server, std::optional<std::string> webui_dir);
+void ServeWebui(httplib::Server* server,
+                const std::string& path,
+                std::optional<std::string> webui_dir);
 }  // namespace oribli
