@@ -22,10 +22,5 @@ RUN /opt/vcpkg/bootstrap-vcpkg.sh
 # vcpkg builds release and debug by default for all packages; disable the default and only build release version
 RUN echo "set(VCPKG_BUILD_TYPE release)" >> /opt/vcpkg/triplets/x64-linux.cmake
 
-# oribli
-COPY *.cpp *.h *.cmake Makefile /usr/local/src/oribli/
-WORKDIR /usr/local/src/oribli
-RUN make && make install
-
 RUN apk update
 RUN apk add npm
