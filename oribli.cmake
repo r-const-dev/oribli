@@ -46,9 +46,12 @@ function(add_oribli_embed_npm_build)
   add_custom_command(
       OUTPUT ${ORIBLI_EMBED_GEN_SRC}
       DEPENDS ${ORIBLI_EMBED_DIST_MD5}
-      COMMAND oribli embed --hdr=${ORIBLI_EMBED_GEN_SRC}.h --src=${ORIBLI_EMBED_GEN_SRC} --map=kWebuiFiles "${ORIBLI_EMBED_DIST_DIR}/*"
-      COMMENT "oribli embed --src=${ORIBLI_EMBED_GEN_SRC} --map=kWebuiFiles ${ORIBLI_EMBED_DIST_DIR}/*")
-  add_library(${ORIBLI_EMBED_LIB} STATIC ${CMAKE_CURRENT_BINARY_DIR}/${ORIBLI_EMBED_GEN_SRC})
+      COMMAND oribli embed --src=${ORIBLI_EMBED_GEN_SRC} "${ORIBLI_EMBED_DIST_DIR}/*"
+      COMMENT "oribli embed --src=${ORIBLI_EMBED_GEN_SRC} ${ORIBLI_EMBED_DIST_DIR}/*")
+  # Create an OBJECT library, which is always linked.
+  # NOTE: A static library requires `-Wl,--whole-archive` to force always link.
+  add_library(${ORIBLI_EMBED_LIB} OBJECT ${CMAKE_CURRENT_BINARY_DIR}/${ORIBLI_EMBED_GEN_SRC})
+  target_link_libraries(${ORIBLI_EMBED_LIB} PRIVATE cimple::http)
 endfunction()
   
 

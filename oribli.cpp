@@ -156,36 +156,43 @@ bool ParseStringFlag(int* pargc, char*** pargv, const char* flag, std::string* v
   return true;
 }
 
-int Embed(const std::string& hdr_path, const std::string& src_path, const std::string& map_name, int files_count, const char** files) {
-  std::ofstream hdr(hdr_path);
-  hdr << "#pragma once" << std::endl;
-  hdr << "#include <map>" << std::endl;
-  hdr << "#include <string>" << std::endl;
-  hdr << "extern std::map<std::string, const char*> " << map_name << ";" << std::endl;
-  hdr.close();
-
+int Embed(const std::string& src_path, int files_count, const char** files) {
   std::ofstream src(src_path);
   src << "#include <map>" << std::endl;
   src << "#include <string>" << std::endl;
+  src << "#include <iostream>" << std::endl;
+  src << "#include \"cimple_httplib.h\"" << std::endl;
+/*
+namespace { 
+  #define CONCAT_IMPL(a, b) a##b
+  #define CONCAT(a, b) CONCAT_IMPL(a, b)
+  struct Registrar { Registrar(const std::string& filename, const char* content) { } }; 
+}
+
+#define REGISTER_FILE_CONTENT(filename_value, content_value) \
+namespace { Registrar CONCAT(file, __LINE__)(filename_value, content_value); }
+*/
   src << "namespace {" << std::endl;
-  src << "  std::map<std::string, const char*> CreateMap() {" << std::endl;
-  src << "    std::map<std::string, const char*> m;" << std::endl;
+  src << "#define CONCAT_IMPL(a, b) a##b" << std::endl;
+  src << "#define CONCAT(a, b) CONCAT_IMPL(a, b)" << std::endl;
+  src << "struct Registrar { Registrar(const std::string& filename, const char* content) { cimple::RegisterWebuiFile(filename, content) ; std::cerr << \"Constructed\" << std::endl; } }; " << std::endl;
+  src << "}" << std::endl;
+  src << "#define REGISTER_FILE_CONTENT(filename_value, content_value) \\" << std::endl;
+  src << "namespace { Registrar CONCAT(file, __LINE__)(filename_value, content_value); }";
   for (int i = 0; i < files_count; ++i) {
     std::ifstream in(files[i]);
+    if (in.bad()) {
+      std::cerr << "Warning: ignoring bad file " << files[i] << std::endl;
+      continue;
+    }
     src << std::endl;
     src << std::endl;
-    src <<  "    m[" << std::filesystem::path(files[i]).filename() << "] = R\"file(" << std::endl;
+    src <<  "    REGISTER_FILE_CONTENT(" << std::filesystem::path(files[i]).filename() << ", R\"file(" << std::endl;
     src << in.rdbuf();
-    src << "    )file\";" << std::endl;
+    src << "    )file\")" << std::endl;
     in.close();
   }
   src << std::endl;
-  src << std::endl;
-  src << "    return m;" << std::endl;
-  src << "  }" << std::endl;
-  src << "} // namespace" << std::endl;
-  src << std::endl;
-  src << "std::map<std::string, const char*> " << map_name << " = CreateMap();" << std::endl;
   src.close();
 
   return 0;
@@ -215,19 +222,11 @@ int main(int argc, char** argv) {
     return VcpkgDeps(argc - 2, (const char**)(argv + 2));
   }
   if (command == "embed") {
-    std::string hdr;
-    if (!ParseStringFlag(&argc, &argv, "--hdr", &hdr)) {
-      CommandError("embed requires --hdr=<output-header-file-name>");
-    }
     std::string src;
     if (!ParseStringFlag(&argc, &argv, "--src", &src)) {
       CommandError("embed requires --src=<output-source-file-name>");
     }
-    std::string map_name;
-    if (!ParseStringFlag(&argc, &argv, "--map", &map_name)) {
-      CommandError("embed requires --map=<output-constant-map-name>");
-    }
-    return Embed(hdr, src, map_name, argc - 2, (const char**)(argv + 2));
+    return Embed(src, argc - 2, (const char**)(argv + 2));
   }
   return 0;
 }
