@@ -162,16 +162,6 @@ int Embed(const std::string& src_path, int files_count, const char** files) {
   src << "#include <string>" << std::endl;
   src << "#include <iostream>" << std::endl;
   src << "#include \"cimple_httplib.h\"" << std::endl;
-/*
-namespace { 
-  #define CONCAT_IMPL(a, b) a##b
-  #define CONCAT(a, b) CONCAT_IMPL(a, b)
-  struct Registrar { Registrar(const std::string& filename, const char* content) { } }; 
-}
-
-#define REGISTER_FILE_CONTENT(filename_value, content_value) \
-namespace { Registrar CONCAT(file, __LINE__)(filename_value, content_value); }
-*/
   src << "namespace {" << std::endl;
   src << "#define CONCAT_IMPL(a, b) a##b" << std::endl;
   src << "#define CONCAT(a, b) CONCAT_IMPL(a, b)" << std::endl;
