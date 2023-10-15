@@ -3,7 +3,7 @@
 
 # Ensure that a mongo instance is running on the local machine, with default params.
 EnsureLocalMongo() {
-  if [ ! "$(docker ps -a -q -f name=mongo)" ]; then
+  if [ ! "$(docker ps -a -q -f name='^mongo$')" ]; then
     set -x
     docker run --network host --name mongo --rm -d mongo
     set +x
