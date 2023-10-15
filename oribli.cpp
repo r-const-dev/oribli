@@ -156,19 +156,33 @@ bool ParseStringFlag(int* pargc, char*** pargv, const char* flag, std::string* v
   return true;
 }
 
+constexpr const char* kRegistryHeader = R"header(
+#include <iostream>
+#include <map>
+#include <string>
+
+#include <cimple/cimple_httplib.h>
+
+namespace {
+
+#define CONCAT_IMPL(a, b) a##b
+#define CONCAT(a, b) CONCAT_IMPL(a, b)
+
+struct Registrar {
+  Registrar(const std::string& filename, const char* content) {
+    cimple::RegisterWebuiFile(filename, content);
+    std::cerr << "Registered " << filename << std::endl;
+  }
+};
+
+#define REGISTER_FILE_CONTENT(filename_value, content_value) namespace { Registrar CONCAT(file, __LINE__)(filename_value, content_value); }
+
+}
+)header";
+
 int Embed(const std::string& src_path, int files_count, const char** files) {
   std::ofstream src(src_path);
-  src << "#include <map>" << std::endl;
-  src << "#include <string>" << std::endl;
-  src << "#include <iostream>" << std::endl;
-  src << "#include \"cimple_httplib.h\"" << std::endl;
-  src << "namespace {" << std::endl;
-  src << "#define CONCAT_IMPL(a, b) a##b" << std::endl;
-  src << "#define CONCAT(a, b) CONCAT_IMPL(a, b)" << std::endl;
-  src << "struct Registrar { Registrar(const std::string& filename, const char* content) { cimple::RegisterWebuiFile(filename, content) ; std::cerr << \"Constructed\" << std::endl; } }; " << std::endl;
-  src << "}" << std::endl;
-  src << "#define REGISTER_FILE_CONTENT(filename_value, content_value) \\" << std::endl;
-  src << "namespace { Registrar CONCAT(file, __LINE__)(filename_value, content_value); }";
+  src << kRegistryHeader;
   for (int i = 0; i < files_count; ++i) {
     std::ifstream in(files[i]);
     if (in.bad()) {

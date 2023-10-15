@@ -16,6 +16,7 @@ macro(oribli_standard)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
   include_directories(${CMAKE_SOURCE_DIR})
   oribli_detect_static()
+  add_executable(oribli_embed oribli/oribli.cpp)
 endmacro()
 
 function(oribli_target_auto_static TARGET_NAME)
@@ -30,7 +31,7 @@ endmacro()
 
 # In a folder containing an npm package, triggers `npm build` to build the package and embeds all output files into a c++ library.
 #   DIST_DIR - the output dir, relative to current source dir
-#   LIB - the C++ target library to produce, which implements the static map named `kWebuiFiles`.
+#   LIB - the C++ target library to produce.
 function(add_oribli_embed_npm_build)
   cmake_parse_arguments(ORIBLI_EMBED "" "LIB" "DIST_DIR" ${ARGN})
   set(ORIBLI_EMBED_DIST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${ORIBLI_EMBED_DIST_DIR})
@@ -45,13 +46,13 @@ function(add_oribli_embed_npm_build)
       COMMENT "npm run build")
   add_custom_command(
       OUTPUT ${ORIBLI_EMBED_GEN_SRC}
-      DEPENDS ${ORIBLI_EMBED_DIST_MD5}
-      COMMAND oribli embed --src=${ORIBLI_EMBED_GEN_SRC} "${ORIBLI_EMBED_DIST_DIR}/*"
-      COMMENT "oribli embed --src=${ORIBLI_EMBED_GEN_SRC} ${ORIBLI_EMBED_DIST_DIR}/*")
+      DEPENDS oribli_embed ${ORIBLI_EMBED_DIST_MD5}
+      COMMAND oribli_embed embed --src=${ORIBLI_EMBED_GEN_SRC} "${ORIBLI_EMBED_DIST_DIR}/*"
+      COMMENT "oribli_embed embed --src=${ORIBLI_EMBED_GEN_SRC} ${ORIBLI_EMBED_DIST_DIR}/*")
   # Create an OBJECT library, which is always linked.
   # NOTE: A static library requires `-Wl,--whole-archive` to force always link.
   add_library(${ORIBLI_EMBED_LIB} OBJECT ${CMAKE_CURRENT_BINARY_DIR}/${ORIBLI_EMBED_GEN_SRC})
-  target_link_libraries(${ORIBLI_EMBED_LIB} PRIVATE cimple::http)
+  target_link_libraries(${ORIBLI_EMBED_LIB} PRIVATE cimple::cimple_httplib)
 endfunction()
   
 
