@@ -17,5 +17,10 @@ CMakeDefault() {
   fi
   cd build
   cmake -DCMAKE_TOOLCHAIN_FILE=/opt/vcpkg/scripts/buildsystems/vcpkg.cmake ..
-  make
+  make -j
+}
+
+# Standard cmake test command.
+CTestDefault() {
+  CMakeDefault && ctest -V
 }
